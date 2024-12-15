@@ -21,20 +21,12 @@ const int echoPin2 = 6; // 두 번째 초음파 센서의 Echo 핀
 // 서보 모터 설정
 Servo myServo;
 
-// 조도센서 설정
+// 조도센서 및 부저 설정
 const int LIGHT_SENSOR_PIN = A0;
 
-// 랜덤 표정 배열
-const char* randomEmojis[] = {"-_-", "^_^", "o_o", "O_O", "._.", "=_=", "T_T", ">_<", "~_~"};
-const int numEmojis = 9;  // 랜덤 표정의 개수
+//부저
+const int BUZZER_PIN = 7;
 
-// 랜덤 표정 변경을 위한 타이머 변수
-unsigned long lastEmojiChangeTime = 0;
-const unsigned long emojiChangePeriod = 500; // 5초
-
-// 함수 프로토타입 선언
-void displayEmoji(const char* emoji);
-void displayRandomEmoji();
 float getDistance(int trigPin, int echoPin);
 
 void setup() {
@@ -45,16 +37,13 @@ void setup() {
   
   dht.begin();      // DHT 센서 시작
   
-  Rtc.Begin();      // RTC 모듈 시작
-  
-  randomSeed(analogRead(0));  // 랜덤 시드 초기화
-  
   pinMode(trigPin1, OUTPUT);
   pinMode(echoPin1, INPUT);
   pinMode(trigPin2, OUTPUT);
   pinMode(echoPin2, INPUT);
   
-  myServo.attach(8); // 서보 모터 핀 설정 (핀 7에 연결)
+  pinMode(BUZZER_PIN, OUTPUT); // 부저 핀 출력 모드 설정
+  myServo.attach(8);           // 서보 모터 핀 설정 (핀 8에 연결)
 }
 
 void loop() {
@@ -67,7 +56,7 @@ void loop() {
 
   float distance1 = getDistance(trigPin1, echoPin1);
   float distance2 = getDistance(trigPin2, echoPin2);
-  
+
   // 첫 번째 센서의 조건: 거리 5cm 이하 시 -60도로 회전
   if (distance1 <= 5) {
     myServo.write(120); // -60도 회전 (SG90은 0~180도 사이로 설정하므로 120도로 설정)
@@ -80,31 +69,26 @@ void loop() {
     delay(1000); // 안정적인 동작을 위한 지연
   }
 
-  // 조도 센서 처리
   if (lightValue >= 300) {
-    displayEmoji(":)");
-  } 
-  // 습도 센서 처리
-  else if (humidity >= 36) {
-    displayEmoji(":(");
-  } 
-  // 온도 센서 처리
-  else if (temperature >= 24.5) {
-    displayEmoji(">_<");
+      lcd.clear();
+      lcd.setCursor(4, 0);
+      lcd.print("Smile :)");
+      buzz(1, 1000); // 부저 1회, 1초 간격
+  } else if (humidity >= 36) {
+      lcd.clear();
+      lcd.setCursor(4, 0);
+      lcd.print("Sad :(");
+      buzz(1, 1000); // 부저 1회, 1초 간격
+  } else if (temperature >= 24.5) {
+      lcd.clear();
+      lcd.setCursor(4, 0);
+      lcd.print("Hot :/");
+      buzz(1, 1000); // 부저 1회, 1초 간격
+  } else {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("normal");
   }
-}
-
-// LCD에 표정 표시 함수
-void displayEmoji(const char* emoji) {
-  lcd.clear();
-  lcd.setCursor(7, 0);
-  lcd.print(emoji);
-}
-
-// 랜덤 표정 표시 함수
-void displayRandomEmoji() {
-  int randomIndex = random(numEmojis);
-  displayEmoji(randomEmojis[randomIndex]);
 }
 
 // 초음파 센서 거리 측정 함수
@@ -119,4 +103,14 @@ float getDistance(int trigPin, int echoPin) {
   float distance = (duration * 0.0343) / 2; // 거리 계산 (단위: cm)
   
   return distance;
+}
+
+// 부저 작동 함수
+void buzz(int times, int delayTime) {
+  for (int i = 0; i < times; i++) {
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(500); // 부저 울림 시간
+    digitalWrite(BUZZER_PIN, LOW);
+    delay(delayTime - 500); // 나머지 대기 시간
+  }
 }
